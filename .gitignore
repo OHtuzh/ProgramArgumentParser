@@ -33,3 +33,6 @@
 
 # Build directuries
 *build*
+
+# Idea
+.idea/
