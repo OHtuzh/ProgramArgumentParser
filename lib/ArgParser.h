@@ -32,10 +32,6 @@ namespace ArgumentParser {
         kIntArgument, kStringArgument, kFlagArgument
     };
 
-    enum ParseType {
-        kArgument, kPositionalArgument, kFlag
-    };
-
     template<typename T>
     class Argument {
      public:
@@ -186,8 +182,6 @@ namespace ArgumentParser {
         std::map<std::string, Flag*> flags_;
 
         [[nodiscard]] bool CheckCorrectness() const;
-
-        ParseType DefineType();
 
         void UpdatePositionalArgument(const std::string& value);
 

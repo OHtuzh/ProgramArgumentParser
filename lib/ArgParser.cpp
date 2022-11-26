@@ -104,8 +104,7 @@ namespace ArgumentParser {
             if (data[i][0] == '-') {
                 if (data[i].find('=') != std::string::npos) {
                     UpdateArgument(data[i]);
-                }
-                else if (data[i][1] != '-') {
+                } else if (data[i][1] != '-') {
                     if (data[i].length() > 2) {
                         UpdateShortFlags(data[i]);
                     } else {
@@ -118,8 +117,7 @@ namespace ArgumentParser {
                                 UpdateArgument(data[i], data[i + 1]);
                                 i++;
                                 break;
-                            case kFlagArgument:
-                                UpdateShortFlags(data[i]);
+                            case kFlagArgument:UpdateShortFlags(data[i]);
                                 break;
                         }
                     }
@@ -137,8 +135,7 @@ namespace ArgumentParser {
                             UpdateArgument(data[i], data[i + 1]);
                             i++;
                             break;
-                        case kFlagArgument:
-                            UpdateFlag(data[i]);
+                        case kFlagArgument:UpdateFlag(data[i]);
                             break;
                     }
                 }
@@ -304,7 +301,7 @@ namespace ArgumentParser {
         }
         std::stringstream result;
         result << name_ << "\n";
-        for (const auto& key: keys_) {
+        for (const auto& key : keys_) {
             if (!key.second->short_key.empty()) {
                 result << '-' << key.second->short_key;
             }
