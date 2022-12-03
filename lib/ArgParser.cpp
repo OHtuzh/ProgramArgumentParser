@@ -2,43 +2,43 @@
 
 namespace ArgumentParser {
     ArgParser::~ArgParser() {
-        auto deleter = [&]<typename K>(std::map<std::string, K*> some_map) {
-            for (auto& item : some_map) {
-                if (item.second != nullptr) {
-                    K* tmp = item.second;
-                    auto* key = keys_.at(item.first);
-                    if (!key->short_key.empty()) {
-                        some_map.at(key->short_key) = nullptr;
-                    }
-                    if (!key->long_key.empty()) {
-                        some_map.at(key->long_key) = nullptr;
-                    }
-                    delete tmp;
+        ClearMap(int_arguments_);
+        ClearMap(string_arguments_);
+        ClearMap(flags_);
+        ClearMap(keys_);
+    }
+
+    template<typename K>
+    void ArgParser::ClearMap(std::map<std::string, K*>& some_map) {
+        for (const auto& item : some_map) {
+            if (item.second != nullptr) {
+                K* tmp = item.second;
+                auto* key = keys_.at(item.first);
+                if (!key->short_key.empty()) {
+                    some_map.at(key->short_key) = nullptr;
                 }
+                if (!key->long_key.empty()) {
+                    some_map.at(key->long_key) = nullptr;
+                }
+                delete tmp;
             }
-        };
-        deleter(int_arguments_);
-        deleter(string_arguments_);
-        deleter(flags_);
-        deleter(keys_);
+        }
     }
 
     bool ArgParser::CheckCorrectness() const {
-        for (auto& int_argument : int_arguments_) {
-            if (!int_argument.second->IsCorrect()) {
-                return false;
+        auto check_correctness = []<typename K>(const std::map<std::string, K*>& arguments) {
+            for (const auto& argument: arguments) {
+                if (!argument.second->IsCorrect()) {
+                    return false;
+                }
             }
-        }
-        for (auto& string_argument : string_arguments_) {
-            if (!string_argument.second->IsCorrect()) {
-                return false;
-            }
-        }
-        return true;
+            return true;
+        };
+        return check_correctness(int_arguments_) && check_correctness(string_arguments_);
     }
 
     void ArgParser::UpdatePositionalArgument(const std::string& value) {
-        for (auto& key : keys_) {
+        for (const auto& key : keys_) {
             if (key.second->type == StoreType::kIntArgument) {
                 Argument<int>* argument = int_arguments_[key.first];
                 if (argument->positional_) {
@@ -135,7 +135,8 @@ namespace ArgumentParser {
                             UpdateArgument(data[i], data[i + 1]);
                             i++;
                             break;
-                        case kFlagArgument:UpdateFlag(data[i]);
+                        case kFlagArgument:
+                            UpdateFlag(data[i]);
                             break;
                     }
                 }
@@ -189,7 +190,7 @@ namespace ArgumentParser {
 
     void ArgParser::SetFlag(const std::string& flag) {
         try {
-            *flags_[flag]->value_ = true;
+            *flags_.at(flag)->value_ = true;
         } catch (const std::exception& exception) {
             throw parse_exception("Not excepted flag: [" + flag + "]");
         }

@@ -183,6 +183,9 @@ namespace ArgumentParser {
 
         [[nodiscard]] bool CheckCorrectness() const;
 
+        template<typename K>
+        void ClearMap(std::map<std::string, K*>& some_map);
+
         void UpdatePositionalArgument(const std::string& value);
 
         void UpdateShortFlags(const std::string& raw_key);
