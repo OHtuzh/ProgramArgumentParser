@@ -2,7 +2,6 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
-
 using namespace ArgumentParser;
 
 std::vector<std::string> SplitString(const std::string& str) {
@@ -11,13 +10,11 @@ std::vector<std::string> SplitString(const std::string& str) {
     return {std::istream_iterator<std::string>(iss), std::istream_iterator<std::string>()};
 }
 
-
 TEST(ArgParserTestSuite, EmptyTest) {
     ArgParser parser("My Empty Parser");
 
     ASSERT_TRUE(parser.Parse(SplitString("app")));
 }
-
 
 TEST(ArgParserTestSuite, StringTest) {
     ArgParser parser("My Parser");
@@ -27,7 +24,6 @@ TEST(ArgParserTestSuite, StringTest) {
     ASSERT_EQ(parser.GetStringValue("param1"), "value1");
 }
 
-
 TEST(ArgParserTestSuite, ShortNameTest) {
     ArgParser parser("My Parser");
     parser.AddStringArgument('p', "param1");
@@ -35,7 +31,6 @@ TEST(ArgParserTestSuite, ShortNameTest) {
     ASSERT_TRUE(parser.Parse(SplitString("app -p=value1")));
     ASSERT_EQ(parser.GetStringValue("param1"), "value1");
 }
-
 
 TEST(ArgParserTestSuite, DefaultTest) {
     ArgParser parser("My Parser");
@@ -45,14 +40,12 @@ TEST(ArgParserTestSuite, DefaultTest) {
     ASSERT_EQ(parser.GetStringValue("param1"), "value1");
 }
 
-
 TEST(ArgParserTestSuite, NoDefaultTest) {
     ArgParser parser("My Parser");
     parser.AddStringArgument("param1");
 
     ASSERT_FALSE(parser.Parse(SplitString("app")));
 }
-
 
 TEST(ArgParserTestSuite, StoreValueTest) {
     ArgParser parser("My Parser");
@@ -62,7 +55,6 @@ TEST(ArgParserTestSuite, StoreValueTest) {
     ASSERT_TRUE(parser.Parse(SplitString("app --param1=value1")));
     ASSERT_EQ(value, "value1");
 }
-
 
 TEST(ArgParserTestSuite, MultiStringTest) {
     ArgParser parser("My Parser");
@@ -74,7 +66,6 @@ TEST(ArgParserTestSuite, MultiStringTest) {
     ASSERT_EQ(parser.GetStringValue("param2"), "value2");
 }
 
-
 TEST(ArgParserTestSuite, IntTest) {
     ArgParser parser("My Parser");
     parser.AddIntArgument("param1");
@@ -82,7 +73,6 @@ TEST(ArgParserTestSuite, IntTest) {
     ASSERT_TRUE(parser.Parse(SplitString("app --param1=100500")));
     ASSERT_EQ(parser.GetIntValue("param1"), 100500);
 }
-
 
 TEST(ArgParserTestSuite, MultiValueTest) {
     ArgParser parser("My Parser");
@@ -95,7 +85,6 @@ TEST(ArgParserTestSuite, MultiValueTest) {
     ASSERT_EQ(int_values[2], 3);
 }
 
-
 TEST(ArgParserTestSuite, MinCountMultiValueTest) {
     ArgParser parser("My Parser");
     std::vector<int> int_values;
@@ -105,7 +94,6 @@ TEST(ArgParserTestSuite, MinCountMultiValueTest) {
     ASSERT_FALSE(parser.Parse(SplitString("app --param1=1 --param1=2 --param1=3")));
 }
 
-
 TEST(ArgParserTestSuite, FlagTest) {
     ArgParser parser("My Parser");
     parser.AddFlag('f', "flag1");
@@ -114,10 +102,9 @@ TEST(ArgParserTestSuite, FlagTest) {
     ASSERT_TRUE(parser.GetFlag("flag1"));
 }
 
-
 TEST(ArgParserTestSuite, FlagsTest) {
     ArgParser parser("My Parser");
-    bool flag3 ;
+    bool flag3;
     parser.AddFlag('a', "flag1");
     parser.AddFlag('b', "flag2").Default(true);
     parser.AddFlag('c', "flag3").StoreValue(flag3);
@@ -128,18 +115,16 @@ TEST(ArgParserTestSuite, FlagsTest) {
     ASSERT_TRUE(flag3);
 }
 
-
 TEST(ArgParserTestSuite, PositionalArgTest) {
     ArgParser parser("My Parser");
     std::vector<int> values;
-    parser.AddIntArgument("Param1").MultiValue(2).Positional().StoreValue(values);
+    parser.AddIntArgument("Param1").MultiValue(2).Positional().StoreValues(values);
 
     ASSERT_TRUE(parser.Parse(SplitString("app 1 2 3 4 5")));
     ASSERT_EQ(values[0], 1);
     ASSERT_EQ(values[2], 3);
     ASSERT_EQ(values.size(), 5);
 }
-
 
 TEST(ArgParserTestSuite, HelpTest) {
     ArgParser parser("My Parser");
@@ -149,7 +134,6 @@ TEST(ArgParserTestSuite, HelpTest) {
     ASSERT_TRUE(parser.Help());
 }
 
-
 TEST(ArgParserTestSuite, HelpStringTest) {
     ArgParser parser("My Parser");
     parser.AddHelp('h', "help", "Some Description about program");
@@ -158,8 +142,7 @@ TEST(ArgParserTestSuite, HelpStringTest) {
     parser.AddFlag('p', "flag2", "Use some logic");
     parser.AddIntArgument("numer", "Some Number");
 
-
-    ASSERT_TRUE(parser.Parse(SplitString("app --help")));
+    ASSERT_FALSE(parser.Parse(SplitString("app --help")));
     // ASSERT_EQ(
     //     parser.HelpDescription(),
     //     "My Parser\n"

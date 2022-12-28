@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Build directuries
+*build*
+
+# Idea
+.idea/
