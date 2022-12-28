@@ -1,38 +1,12 @@
 #include "ArgParser.h"
 
 namespace ArgumentParser {
-    ArgParser::~ArgParser() {
-        ClearMap(int_arguments_);
-        ClearMap(string_arguments_);
-        ClearMap(flags_);
-        ClearMap(keys_);
-    }
-
-    template<typename K>
-    void ArgParser::ClearMap(std::map<std::string, K*>& some_map) {
-        for (const auto& item : some_map) {
-            if (item.second != nullptr) {
-                K* tmp = item.second;
-                auto* key = keys_.at(item.first);
-                if (!key->short_key.empty()) {
-                    some_map.at(key->short_key) = nullptr;
-                }
-                if (!key->long_key.empty()) {
-                    some_map.at(key->long_key) = nullptr;
-                }
-                delete tmp;
-            }
-        }
-    }
 
     bool ArgParser::CheckCorrectness() const {
-        auto check_correctness = []<typename K>(const std::map<std::string, K*>& arguments) {
-            for (const auto& argument: arguments) {
-                if (!argument.second->IsCorrect()) {
-                    return false;
-                }
-            }
-            return true;
+        auto check_correctness = []<typename K>(const std::map<std::string, std::shared_ptr<Argument<K>>>& arguments) {
+            return std::all_of(arguments.begin(), arguments.end(), [](std::pair<std::string, std::shared_ptr<Argument<K>>> pair){
+                return pair.second->IsCorrect();
+            });
         };
         return check_correctness(int_arguments_) && check_correctness(string_arguments_);
     }
@@ -40,12 +14,12 @@ namespace ArgumentParser {
     void ArgParser::UpdatePositionalArgument(const std::string& value) {
         for (const auto& key : keys_) {
             if (key.second->type == StoreType::kIntArgument) {
-                Argument<int>* argument = int_arguments_[key.first];
+                const auto& argument = int_arguments_[key.first];
                 if (argument->positional_) {
                     argument->SetValue(std::stoi(value));
                 }
             } else if (key.second->type == StoreType::kStringArgument) {
-                Argument<std::string>* argument = string_arguments_[key.first];
+                const auto& argument = string_arguments_[key.first];
                 if (argument->positional_) {
                     argument->SetValue(value);
                 }
@@ -74,7 +48,7 @@ namespace ArgumentParser {
 
     void ArgParser::SetArgument(const std::string& argument_name, const std::string& value) {
         try {
-            Key* key = keys_.at(argument_name);
+            const auto& key = keys_.at(argument_name);
             if (key->type == StoreType::kIntArgument) {
                 int_arguments_[argument_name]->SetValue(std::stoi(value));
             } else {
@@ -135,8 +109,7 @@ namespace ArgumentParser {
                             UpdateArgument(data[i], data[i + 1]);
                             i++;
                             break;
-                        case kFlagArgument:
-                            UpdateFlag(data[i]);
+                        case kFlagArgument:UpdateFlag(data[i]);
                             break;
                     }
                 }
@@ -158,9 +131,9 @@ namespace ArgumentParser {
     }
 
     Flag& ArgParser::AddFlag(char short_flag, const std::string& long_flag) {
-        auto* new_flag = new Flag;
+        auto new_flag = std::make_shared<Flag>(Flag());
         std::string short_flag_string{short_flag};
-        auto* key = new Key{short_flag_string, long_flag, "", StoreType::kFlagArgument};
+        auto key = std::make_shared<Key>(Key{short_flag_string, long_flag, "", StoreType::kFlagArgument});
         keys_[short_flag_string] = keys_[long_flag] = key;
         flags_[short_flag_string] = flags_[long_flag] = new_flag;
 
@@ -168,8 +141,8 @@ namespace ArgumentParser {
     }
 
     Flag& ArgParser::AddFlag(const std::string& long_flag, const std::string& description) {
-        auto* new_flag = new Flag;
-        auto* key = new Key{"", long_flag, description, StoreType::kFlagArgument};
+        auto new_flag = std::make_shared<Flag>(Flag());
+        auto key = std::make_shared<Key>(Key{"", long_flag, description, StoreType::kFlagArgument});
         keys_[long_flag] = key;
         flags_[long_flag] = new_flag;
 
@@ -179,9 +152,9 @@ namespace ArgumentParser {
     Flag& ArgParser::AddFlag(char short_flag,
                              const std::string& long_flag,
                              const std::string& description) {
-        auto* new_flag = new Flag;
+        auto new_flag = std::make_shared<Flag>(Flag());
         std::string short_flag_string{short_flag};
-        auto* key = new Key{short_flag_string, long_flag, description, StoreType::kFlagArgument};
+        auto key = std::make_shared<Key>(Key{short_flag_string, long_flag, description, StoreType::kFlagArgument});
         keys_[short_flag_string] = keys_[long_flag] = key;
         flags_[short_flag_string] = flags_[long_flag] = new_flag;
 
@@ -198,50 +171,52 @@ namespace ArgumentParser {
 
     bool ArgParser::GetFlag(const std::string& flag) {
         try {
-            return flags_.at(flag);
+            return *flags_.at(flag)->value_;
         } catch (const std::exception& exception) {
             throw parse_exception("There's no such flag");
         }
     }
 
     Argument<int>& ArgParser::AddIntArgument(const std::string& long_key) {
-        auto* argument = new Argument<int>;
+        auto argument = std::make_shared<Argument<int>>();
         int_arguments_[long_key] = argument;
-        keys_[long_key] = new Key{"", long_key, "", StoreType::kIntArgument};
+        keys_[long_key] = std::make_shared<Key>(Key{"", long_key, "", StoreType::kIntArgument});
 
         return *argument;
     }
 
     Argument<int>& ArgParser::AddIntArgument(char short_key, const std::string& long_key) {
-        auto* argument = new Argument<int>;
+        auto argument = std::make_shared<Argument<int>>();
         std::string short_key_string{short_key};
         int_arguments_[short_key_string] = int_arguments_[long_key] = argument;
-        keys_[short_key_string] = keys_[long_key] = new Key{short_key_string, long_key, "", StoreType::kIntArgument};
+        keys_[short_key_string] = keys_[long_key] =
+            std::make_shared<Key>(Key{short_key_string, long_key, "", StoreType::kIntArgument});
 
         return *argument;
     }
 
     Argument<int>& ArgParser::AddIntArgument(const std::string& long_key, const std::string& description) {
-        auto* argument = new Argument<int>;
+        auto argument = std::make_shared<Argument<int>>();
         int_arguments_[long_key] = argument;
-        keys_[long_key] = new Key{"", long_key, description, StoreType::kIntArgument};
+        keys_[long_key] = std::make_shared<Key>(Key{"", long_key, description, StoreType::kIntArgument});
 
         return *argument;
     }
 
     Argument<std::string>& ArgParser::AddStringArgument(const std::string& long_key) {
-        auto* argument = new Argument<std::string>;
+        auto argument = std::make_shared<Argument<std::string>>();
         string_arguments_[long_key] = argument;
-        keys_[long_key] = new Key{"", long_key, "", StoreType::kStringArgument};
+        keys_[long_key] = std::make_shared<Key>(Key{"", long_key, "", StoreType::kStringArgument});
 
         return *argument;
     }
 
     Argument<std::string>& ArgParser::AddStringArgument(char short_key, const std::string& long_key) {
-        auto* argument = new Argument<std::string>;
+        auto argument = std::make_shared<Argument<std::string>>();
         std::string short_key_string{short_key};
         string_arguments_[short_key_string] = string_arguments_[long_key] = argument;
-        keys_[short_key_string] = keys_[long_key] = new Key{short_key_string, long_key, "", StoreType::kStringArgument};
+        keys_[short_key_string] = keys_[long_key] =
+            std::make_shared<Key>(Key{short_key_string, long_key, "", StoreType::kStringArgument});
 
         return *argument;
     }
@@ -249,17 +224,17 @@ namespace ArgumentParser {
     Argument<std::string>& ArgParser::AddStringArgument(char short_key,
                                                         const std::string& long_key,
                                                         const std::string& description) {
-        auto* argument = new Argument<std::string>;
+        auto argument = std::make_shared<Argument<std::string>>();
         std::string short_key_string{short_key};
         string_arguments_[short_key_string] = string_arguments_[long_key] = argument;
         keys_[short_key_string] = keys_[long_key] =
-            new Key{short_key_string, long_key, description, StoreType::kStringArgument};
+            std::make_shared<Key>(Key{short_key_string, long_key, description, StoreType::kStringArgument});
 
         return *argument;
     }
 
     int ArgParser::GetIntValue(const std::string& key, int index) {
-        auto* argument = int_arguments_.at(key);
+        const auto& argument = int_arguments_.at(key);
         if (argument->number_of_values_ >= argument->min_number_of_values_) {
             if (argument->multi_value_) {
                 return (*argument->values_)[index];
@@ -274,7 +249,7 @@ namespace ArgumentParser {
     }
 
     std::string ArgParser::GetStringValue(const std::string& key, int index) {
-        auto* argument = string_arguments_.at(key);
+        const auto& argument = string_arguments_.at(key);
         if (argument->number_of_values_ >= argument->min_number_of_values_) {
             if (argument->multi_value_) {
                 return (*argument->values_)[index];

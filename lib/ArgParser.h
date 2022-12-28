@@ -6,6 +6,7 @@
 #include <vector>
 #include <optional>
 #include <sstream>
+#include <memory>
 
 namespace ArgumentParser {
     class argument_parser_exception : public std::exception {
@@ -35,8 +36,10 @@ namespace ArgumentParser {
     template<typename T>
     class Argument {
      public:
-        std::vector<T>* values_ = new std::vector<T>;
-        T* value_ = new T;
+        std::vector<T> vector_data_;
+        std::vector<T>* values_;
+        T data_;
+        T* value_;
         std::optional<T> default_value_ = std::nullopt;
         std::optional<std::vector<T>> default_values_ = std::nullopt;
 
@@ -44,20 +47,8 @@ namespace ArgumentParser {
         uint64_t number_of_values_ = 0;
         bool positional_ = false;
         bool multi_value_ = false;
-        bool stored_ = false;
 
-        ~Argument() {
-            if (stored_) {
-                if (multi_value_) {
-                    delete value_;
-                } else {
-                    delete values_;
-                }
-            } else {
-                delete value_;
-                delete values_;
-            }
-        }
+        Argument() : value_(&data_), values_(&vector_data_) {}
 
         Argument<T>& Positional() {
             positional_ = true;
@@ -90,9 +81,7 @@ namespace ArgumentParser {
             if (multi_value_) {
                 throw settings_exception("You can't store single value in multi-value argument");
             }
-            delete value_;
             value_ = &value;
-            stored_ = true;
             return *this;
         }
 
@@ -100,9 +89,7 @@ namespace ArgumentParser {
             if (!multi_value_) {
                 throw settings_exception("You can't store multi-value value in single-value argument");
             }
-            delete values_;
             values_ = &values;
-            stored_ = true;
             return *this;
         }
 
@@ -123,24 +110,18 @@ namespace ArgumentParser {
 
     class Flag {
      public:
-        bool* value_ = new bool{false};
-        bool stored_ = false;
+        bool data_;
+        bool* value_;
 
-        ~Flag() {
-            if (!stored_) {
-                delete value_;
-            }
-        }
+        Flag() : data_(false), value_(&data_) {}
 
         Flag& Default(bool default_value) {
-            *this->value_ = default_value;
+            *value_ = default_value;
             return *this;
         }
 
         Flag& StoreValue(bool& store_value) {
-            delete this->value_;
-            this->value_ = &store_value;
-            stored_ = true;
+            value_ = &store_value;
             return *this;
         }
     };
@@ -168,7 +149,6 @@ namespace ArgumentParser {
     };
 
     class ArgParser {
-        // Your Implementation here!
      private:
 
         std::string name_;
@@ -176,15 +156,12 @@ namespace ArgumentParser {
         std::optional<Key> help_{std::nullopt};
         bool found_help_{false};
 
-        std::map<std::string, Key*> keys_;
-        std::map<std::string, Argument<int>*> int_arguments_;
-        std::map<std::string, Argument<std::string>*> string_arguments_;
-        std::map<std::string, Flag*> flags_;
+        std::map<std::string, std::shared_ptr<Key>> keys_;
+        std::map<std::string, std::shared_ptr<Argument<int>>> int_arguments_;
+        std::map<std::string, std::shared_ptr<Argument<std::string>>> string_arguments_;
+        std::map<std::string, std::shared_ptr<Flag>> flags_;
 
         [[nodiscard]] bool CheckCorrectness() const;
-
-        template<typename K>
-        void ClearMap(std::map<std::string, K*>& some_map);
 
         void UpdatePositionalArgument(const std::string& value);
 
@@ -199,8 +176,6 @@ namespace ArgumentParser {
         void UpdateArgument(const std::string& raw_argument_name, const std::string& value);
      public:
         explicit ArgParser(std::string name) : name_(std::move(name)) {};
-
-        ~ArgParser();
 
         bool Parse(const std::vector<std::string>& data);
 
